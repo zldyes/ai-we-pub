@@ -23,6 +23,7 @@ jobs:
             platform: linux/amd64
             output: ai-we-pub
             webview2: ""
+            tags: webkit2_41
           - os: macos-latest
             platform: darwin/universal
             output: ai-we-pub
@@ -61,12 +62,14 @@ jobs:
 
       - name: Build
         run: |
-          WEBVIEW2_FLAG="${{ matrix.webview2 }}"
-          if [ -n "$WEBVIEW2_FLAG" ]; then
-            wails build --platform ${{ matrix.platform }} -o ${{ matrix.output }} -webview2 "$WEBVIEW2_FLAG"
-          else
-            wails build --platform ${{ matrix.platform }} -o ${{ matrix.output }}
+          ARGS="--platform ${{ matrix.platform }} -o ${{ matrix.output }}"
+          if [ -n "${{ matrix.webview2 }}" ]; then
+            ARGS="$ARGS -webview2 ${{ matrix.webview2 }}"
           fi
+          if [ -n "${{ matrix.tags }}" ]; then
+            ARGS="$ARGS -tags ${{ matrix.tags }}"
+          fi
+          wails build $ARGS
         shell: bash
 
       - uses: actions/upload-artifact@v4
