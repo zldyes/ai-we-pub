@@ -3,6 +3,7 @@ name: Build
 on:
   push:
     branches: [main]
+    tags: ['v*']
   pull_request:
     branches: [main]
 
@@ -19,15 +20,18 @@ jobs:
             platform: windows/amd64
             output: ai-we-pub.exe
             webview2: download
+            archive: zip
           - os: ubuntu-latest
             platform: linux/amd64
             output: ai-we-pub
             webview2: ""
             tags: webkit2_41
+            archive: tar.gz
           - os: macos-latest
             platform: darwin/universal
             output: ai-we-pub
             webview2: ""
+            archive: tar.gz
     runs-on: ${{ matrix.os }}
 
     defaults:
@@ -72,7 +76,51 @@ jobs:
           wails build $ARGS
         shell: bash
 
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          Compress-Archive -Path build/bin/${{ matrix.output }} -DestinationPath ai-we-pub-windows-amd64.zip
+
+      - name: Package (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          tar czf ai-we-pub-linux-amd64.tar.gz -C build/bin ${{ matrix.output }}
+
+      - name: Package (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          cd build/bin
+          tar czf ../../ai-we-pub-darwin-universal.tar.gz ai-we-pub.app
+
       - uses: actions/upload-artifact@v4
         with:
           name: ai-we-pub-${{ matrix.os }}
-          path: build/bin/**
+          path: ai-we-pub-*.zip
+          if-no-files-found: ignore
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ai-we-pub-${{ matrix.os }}
+          path: ai-we-pub-*.tar.gz
+          if-no-files-found: ignore
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: ai-we-pub-*
+          merge-multiple: true
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ai-we-pub-windows-amd64.zip
+            ai-we-pub-linux-amd64.tar.gz
+            ai-we-pub-darwin-universal.tar.gz
+          generate_release_notes: true
