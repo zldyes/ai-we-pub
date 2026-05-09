@@ -1,0 +1,37 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install frontend dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Build with Wails
+        uses: wailsapp/wails-build-action@v2
+        with:
+          build-name: ai-we-pub
+          build-platform: ${{ matrix.os == 'windows-latest' && 'windows/amd64' || matrix.os == 'macos-latest' && 'darwin/universal' || 'linux/amd64' }}
+          nsis: false
