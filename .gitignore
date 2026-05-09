@@ -10,7 +10,6 @@ build/bin/
 
 # Go
 vendor/
-*.mod
 
 # Node
 node_modules/
